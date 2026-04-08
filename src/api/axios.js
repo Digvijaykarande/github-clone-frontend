@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://mygithubclone-hwbue4edhmb2cceh.centralindia-01.azurewebsites.net",
+  baseURL: "https://devhub-accdcbhgh3gngsh6.centralindia-01.azurewebsites.net/",
 });
 
 // Request interceptor - attach token
