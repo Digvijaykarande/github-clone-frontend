@@ -25,9 +25,10 @@ export default function Navbar() {
   const dropRef   = useRef(null);
   const searchRef = useRef(null);
 
-  const [open, setOpen]             = useState(false);
-  const [scrolled, setScrolled]     = useState(false);
+  const [open, setOpen]                 = useState(false);
+  const [scrolled, setScrolled]         = useState(false);
   const [searchActive, setSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery]   = useState("");  // Fix 1: controlled input
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 8);
@@ -46,15 +47,31 @@ export default function Navbar() {
   useEffect(() => {
     const fn = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault(); searchRef.current?.focus(); setSearchActive(true);
+        e.preventDefault();
+        searchRef.current?.focus();
+        setSearchActive(true);
       }
-      if (e.key === "Escape") { searchRef.current?.blur(); setSearchActive(false); }
+      if (e.key === "Escape") {
+        searchRef.current?.blur();
+        setSearchActive(false);
+      }
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
   }, []);
 
   const handleLogout = () => { logout(); navigate("/login"); };
+
+  // Fix 2: search was a decorative input — now actually navigates on Enter.
+  // Routes to /search?q=... which can show both repo and user results.
+  const handleSearchSubmit = (e) => {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+      searchRef.current?.blur();
+      setSearchActive(false);
+    }
+  };
 
   const avatarInner = user?.imageUrl
     ? <img src={user.imageUrl} alt="avatar" />
@@ -80,7 +97,7 @@ export default function Navbar() {
 
         <div className="nb-vsep" aria-hidden="true" />
 
-        {/* Search */}
+        {/* Fix 3: search is now wired — controlled value + submit on Enter */}
         <div className={`nb-search ${searchActive ? "nb-search--on" : ""}`}>
           <svg className="nb-search-icon" viewBox="0 0 16 16" fill="none" width="13" height="13">
             <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" strokeWidth="1.4"/>
@@ -90,6 +107,9 @@ export default function Navbar() {
             ref={searchRef}
             className="nb-search-input"
             placeholder="Search repos, users…"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchSubmit}
             onFocus={() => setSearchActive(true)}
             onBlur={() => setSearchActive(false)}
           />
@@ -159,7 +179,10 @@ export default function Navbar() {
               {/* User header */}
               <div className="nb-dd-head">
                 <div className="nb-dd-av">
-                  {user?.imageUrl ? <img src={user.imageUrl} alt="" /> : <span>{user?.username?.charAt(0).toUpperCase()}</span>}
+                  {user?.imageUrl
+                    ? <img src={user.imageUrl} alt="" />
+                    : <span>{user?.username?.charAt(0).toUpperCase()}</span>
+                  }
                 </div>
                 <div className="nb-dd-meta">
                   <p className="nb-dd-name">{user?.username}</p>
@@ -175,7 +198,6 @@ export default function Navbar() {
 
               <div className="nb-dd-sep" />
 
-              {/* Items */}
               {[
                 { label:"Your profile",   path:"/profile",  d:"M10.5 5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm.061 3.073a4 4 0 10-5.123 0 6.004 6.004 0 00-3.431 5.142.75.75 0 001.498.07 4.5 4.5 0 018.99 0 .75.75 0 101.498-.07 6.005 6.005 0 00-3.432-5.142z" },
                 { label:"Dashboard",      path:"/",         d:"M1.5 1.75V13.5h13V1.75a.25.25 0 00-.25-.25h-12.5a.25.25 0 00-.25.25zM0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v11.75a1 1 0 01-1 1H1a1 1 0 01-1-1V1.75z" },

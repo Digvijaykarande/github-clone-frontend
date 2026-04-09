@@ -42,6 +42,12 @@ export const searchRepos = async (q) => {
   return res.data;
 };
 
+// Get repos by username
+export const getUserRepos = async (username) => {
+  const res = await API.get(`/api/repos/user/${username}`);
+  return res.data;
+};
+
 // Get files for a repo
 export const getRepoFiles = async (repoId) => {
   const res = await API.get(`/api/repos/${repoId}/files`);

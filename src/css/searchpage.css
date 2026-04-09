@@ -1,0 +1,414 @@
+
+.sp {
+  min-height: 100vh;
+  padding: 2.5rem 2rem 4rem;
+  max-width: 860px;
+  margin: 0 auto;
+  animation: sp-fadein 0.35s ease both;
+}
+
+@keyframes sp-fadein {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.sp-header {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.sp-heading {
+  font-size: 1.35rem;
+  font-weight: 600;
+  color: #e6edf3;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.sp-heading em {
+  font-style: normal;
+  color: #2f81f7;
+}
+
+.sp-count {
+  font-size: 0.8rem;
+  color: #8b949e;
+  margin: 0;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 20px;
+  padding: 1px 10px;
+}
+
+/* ── Search bar ──────────────────────────────────────────────── */
+.sp-searchbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 0 14px;
+  height: 42px;
+  margin-bottom: 1.5rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.sp-searchbar:focus-within {
+  border-color: #2f81f7;
+  box-shadow: 0 0 0 3px rgba(47, 129, 247, 0.15);
+}
+
+.sp-searchbar > svg {
+  flex-shrink: 0;
+  color: #8b949e;
+}
+
+.sp-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  color: #e6edf3;
+  caret-color: #2f81f7;
+}
+
+.sp-input::placeholder { color: #484f58; }
+
+.sp-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: #21262d;
+  color: #8b949e;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.sp-clear:hover {
+  background: #30363d;
+  color: #e6edf3;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────── */
+.sp-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid #21262d;
+  margin-bottom: 1.5rem;
+}
+
+.sp-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #8b949e;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  margin-bottom: -1px;
+}
+
+.sp-tab:hover { color: #e6edf3; }
+
+.sp-tab--active {
+  color: #e6edf3;
+  border-bottom-color: #f78166;
+}
+
+.sp-tab-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #21262d;
+  border: 1px solid #30363d;
+  color: #8b949e;
+  border-radius: 20px;
+  padding: 0 7px;
+  line-height: 1.6;
+}
+
+.sp-tab--active .sp-tab-badge {
+  background: #1f6feb33;
+  border-color: #1f6feb66;
+  color: #79c0ff;
+}
+
+/* ── Section title ───────────────────────────────────────────── */
+.sp-section {
+  margin-bottom: 2rem;
+}
+
+.sp-section-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #8b949e;
+  margin: 0 0 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #21262d;
+}
+
+/* ── Cards (shared base) ─────────────────────────────────────── */
+.sp-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #0d1117;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.12s;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.sp-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #2f81f708 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.sp-card:hover {
+  border-color: #30363d;
+  background: #161b22;
+  transform: translateY(-1px);
+}
+
+.sp-card:hover::before { opacity: 1; }
+
+.sp-card:active { transform: translateY(0); }
+
+/* ── User card specific ──────────────────────────────────────── */
+.sp-uav {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #1f6feb33;
+  border: 1px solid #1f6feb44;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #79c0ff;
+}
+
+.sp-uav img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Repo card specific ──────────────────────────────────────── */
+.sp-repo-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  background: #1a2433;
+  border: 1px solid #1f6feb44;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #79c0ff;
+}
+
+/* ── Card body ───────────────────────────────────────────────── */
+.sp-card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.sp-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+.sp-card-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2f81f7;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.15s;
+}
+
+.sp-card:hover .sp-card-title { color: #58a6ff; }
+
+.sp-card-sub {
+  font-size: 0.8rem;
+  color: #8b949e;
+  margin: 3px 0 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sp-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.sp-card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: #8b949e;
+}
+
+.sp-card-meta svg { opacity: 0.7; }
+
+/* ── Visibility badge ────────────────────────────────────────── */
+.sp-vis {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+  flex-shrink: 0;
+}
+
+.sp-vis--pub {
+  background: #1a3a2a;
+  border: 1px solid #2ea04322;
+  color: #3fb950;
+}
+
+.sp-vis--priv {
+  background: #2a1a1a;
+  border: 1px solid #f7853622;
+  color: #f78166;
+}
+
+/* ── Arrow icon ──────────────────────────────────────────────── */
+.sp-card-arrow {
+  flex-shrink: 0;
+  color: #30363d;
+  margin-top: 4px;
+  transition: color 0.15s, transform 0.15s;
+}
+
+.sp-card:hover .sp-card-arrow {
+  color: #8b949e;
+  transform: translateX(3px);
+}
+
+/* ── Skeleton loaders ────────────────────────────────────────── */
+.sp-skel {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid #21262d;
+  border-radius: 10px;
+  margin-bottom: 8px;
+  animation: sp-shimmer 1.6s infinite;
+}
+
+@keyframes sp-shimmer {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+.sp-skel-av {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #21262d;
+  flex-shrink: 0;
+}
+
+.sp-skel-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.sp-skel-line {
+  height: 11px;
+  background: #21262d;
+  border-radius: 4px;
+}
+
+.sp-skel-50  { width: 50%; }
+.sp-skel-75  { width: 75%; }
+.sp-skel-35  { width: 35%; }
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.sp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  gap: 12px;
+}
+
+.sp-empty svg { color: #30363d; }
+
+.sp-empty p {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #8b949e;
+  margin: 0;
+}
+
+.sp-empty span {
+  font-size: 0.82rem;
+  color: #484f58;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .sp {
+    padding: 1.5rem 1rem 3rem;
+  }
+
+  .sp-card {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .sp-uav,
+  .sp-repo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .sp-card-arrow { display: none; }
+}

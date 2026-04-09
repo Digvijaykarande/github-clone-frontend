@@ -3,6 +3,7 @@ import { Routes, Route, Outlet } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoutes";
+import SearchPage from "./pages/SearchPage";
 import "./App.css";
 
 // ── Lazy-load pages (code splitting — faster initial load) ─────
@@ -64,9 +65,11 @@ export default function App() {
           <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
             <Route path="/"              element={<Dashboard />} />
             <Route path="/profile"       element={<ProfilePage />} />
+            <Route path="/profile/:userId" element={<ProfilePage />} />
             <Route path="/new"           element={<CreateRepoPage />} />
             <Route path="/repos/:repoId" element={<ViewRepoPage />} />
             <Route path="/explore"       element={<ExplorePage />} />
+            <Route path="/search" element={<SearchPage />} />
           </Route>
 
           {/* ── Public routes (no Navbar) ── */}

@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { updateProfile, uploadProfileImage, getMyRepos } from "../api/Profileapi";
+import { getFollowers, getFollowing, getPublicProfile } from "../api/userApi";
+import { getUserRepos } from "../api/repoApi";
 import "../css/profile.css";
 
-// ── helpers ───────────────────────────────────────────────────
+// ── helpers ───────────────────────────────────────────────────────────────────
 const LANG_COLOR = {
   Java:"#b07219", JavaScript:"#f1e05a", Python:"#3572A5",
   TypeScript:"#3178c6", "C++":"#f34b7d", Go:"#00add8",
@@ -24,7 +26,7 @@ const timeAgo = (iso) => {
   return `${Math.floor(d/365)}y ago`;
 };
 
-// ── Contribution Heatmap ──────────────────────────────────────
+// ── Contribution Heatmap ──────────────────────────────────────────────────────
 function ContributionHeatmap({ repos }) {
   const WEEKS = 26, DAYS = 7;
 
@@ -95,7 +97,7 @@ function ContributionHeatmap({ repos }) {
   );
 }
 
-// ── Language bar ──────────────────────────────────────────────
+// ── Language bar ──────────────────────────────────────────────────────────────
 function LanguageBar({ repos }) {
   const stats = useMemo(() => {
     const map = {};
@@ -117,7 +119,10 @@ function LanguageBar({ repos }) {
       </p>
       <div className="pp-langbar-track">
         {stats.map(({ lang, pct }) => (
-          <div key={lang} className="pp-langbar-seg" style={{ width:`${pct}%`, background: LANG_COLOR[lang]||"#848d97" }} title={`${lang} ${pct}%`} />
+          <div key={lang} className="pp-langbar-seg"
+            style={{ width:`${pct}%`, background: LANG_COLOR[lang]||"#848d97" }}
+            title={`${lang} ${pct}%`}
+          />
         ))}
       </div>
       <div className="pp-langbar-legend">
@@ -132,11 +137,15 @@ function LanguageBar({ repos }) {
   );
 }
 
-// ── Repo card ─────────────────────────────────────────────────
+// ── Repo card ─────────────────────────────────────────────────────────────────
 function RepoCard({ repo, idx, navigate }) {
   const color = LANG_COLOR[repo.language] || "#848d97";
   return (
-    <div className="pp-rcard" style={{ animationDelay:`${idx*50}ms` }} onClick={() => navigate(`/repos/${repo.id}`)}>
+    <div
+      className="pp-rcard"
+      style={{ animationDelay:`${idx*50}ms` }}
+      onClick={() => navigate(`/repos/${repo.id}`)}
+    >
       <div className="pp-rcard-glow" style={{ background: color }} />
       <div className="pp-rcard-top">
         <svg className="pp-rcard-repoicon" viewBox="0 0 16 16" fill="currentColor">
@@ -155,11 +164,15 @@ function RepoCard({ repo, idx, navigate }) {
           </span>
         )}
         <span className="pp-rcard-stat">
-          <svg viewBox="0 0 16 16" fill="currentColor" width="11"><path d="M11.93 8.5a4.002 4.002 0 01-7.86 0H.75a.75.75 0 010-1.5h3.32a4.002 4.002 0 017.86 0h3.32a.75.75 0 010 1.5h-3.32z"/></svg>
+          <svg viewBox="0 0 16 16" fill="currentColor" width="11">
+            <path d="M11.93 8.5a4.002 4.002 0 01-7.86 0H.75a.75.75 0 010-1.5h3.32a4.002 4.002 0 017.86 0h3.32a.75.75 0 010 1.5h-3.32z"/>
+          </svg>
           {repo.commits?.length ?? 0}
         </span>
         <span className="pp-rcard-stat">
-          <svg viewBox="0 0 16 16" fill="currentColor" width="11"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0113.25 16h-9.5A1.75 1.75 0 012 14.25V1.75z"/></svg>
+          <svg viewBox="0 0 16 16" fill="currentColor" width="11">
+            <path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0113.25 16h-9.5A1.75 1.75 0 012 14.25V1.75z"/>
+          </svg>
           {repo.files?.length ?? 0}
         </span>
         {repo.createdAt && <span className="pp-rcard-date">{timeAgo(repo.createdAt)}</span>}
@@ -168,10 +181,16 @@ function RepoCard({ repo, idx, navigate }) {
   );
 }
 
-// ── Stat pill ─────────────────────────────────────────────────
-function StatPill({ value, label, icon, color, delay }) {
+// ── Stat pill ─────────────────────────────────────────────────────────────────
+function StatPill({ value, label, icon, color, delay, onClick }) {
   return (
-    <div className="pp-spill" style={{ animationDelay:`${delay}ms`, "--pc": color }}>
+    <div
+      className={`pp-spill ${onClick ? "pp-spill--clickable" : ""}`}
+      style={{ animationDelay:`${delay}ms`, "--pc": color }}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+    >
       <div className="pp-spill-icon" style={{ color, background:`${color}18` }}>{icon}</div>
       <div>
         <div className="pp-spill-val">{value ?? 0}</div>
@@ -181,9 +200,77 @@ function StatPill({ value, label, icon, color, delay }) {
   );
 }
 
-// ── MAIN ─────────────────────────────────────────────────────
+// ── Followers / Following modal ───────────────────────────────────────────────
+function UserListModal({ title, users, loading, onClose, navigate }) {
+  useEffect(() => {
+    const fn = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [onClose]);
+
+  return (
+    <div className="pp-modal-backdrop" onClick={onClose}>
+      <div className="pp-modal" onClick={e => e.stopPropagation()}>
+        <div className="pp-modal-head">
+          <h3>{title}</h3>
+          <button className="pp-modal-close" onClick={onClose} aria-label="Close">
+            <svg viewBox="0 0 16 16" fill="currentColor" width="14">
+              <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"/>
+            </svg>
+          </button>
+        </div>
+        <div className="pp-modal-body">
+          {loading ? (
+            [1,2,3].map(i => (
+              <div key={i} className="pp-modal-skel">
+                <div className="pp-modal-skel-av" />
+                <div className="pp-modal-skel-lines">
+                  <div className="pp-skel-line pp-skel-50" />
+                  <div className="pp-skel-line pp-skel-35" />
+                </div>
+              </div>
+            ))
+          ) : users.length === 0 ? (
+            <p className="pp-modal-empty">Nobody here yet.</p>
+          ) : (
+            users.map(u => (
+              <div
+                key={u.id}
+                className="pp-modal-user"
+                onClick={() => { navigate(`/profile/${u.id}`); onClose(); }}
+              >
+                <div className="pp-modal-av">
+                  {u.imageUrl
+                    ? <img src={u.imageUrl} alt={u.username} />
+                    : <span>{u.username?.charAt(0).toUpperCase()}</span>
+                  }
+                </div>
+                <div className="pp-modal-info">
+                  <span className="pp-modal-uname">{u.username}</span>
+                  {u.bio && <span className="pp-modal-bio">{u.bio}</span>}
+                </div>
+                <div className="pp-modal-counts">
+                  <span>{u.followerCount} followers</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN ──────────────────────────────────────────────────────────────────────
 export default function ProfilePage() {
-  const { user, refreshUser } = useAuth();
+
+  const { user: authUser, refreshUser } = useAuth();
+  const { userId } = useParams();
+  
+  // SECURE TOGGLE: True if no userId in URL parameters
+  const isOwnProfile = !userId; 
+
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
 
   const [editing, setEditing]           = useState(false);
@@ -201,52 +288,132 @@ export default function ProfilePage() {
   const [sortBy, setSortBy]             = useState("updated");
   const [mounted, setMounted]           = useState(false);
 
+  const [followersList, setFollowersList]     = useState([]);
+  const [followingList, setFollowingList]     = useState([]);
+  const [followersLoading, setFollowersLoading] = useState(false);
+  const [followingLoading, setFollowingLoading] = useState(false);
+
+  const [modal, setModal] = useState(null);
+
   useEffect(() => { const t = setTimeout(() => setMounted(true), 30); return () => clearTimeout(t); }, []);
+  
+  useEffect(() => {
+    const loadUser = async () => {
+      try {
+        if (!isOwnProfile) {
+          // Other user's profile
+          const data = await getPublicProfile(userId);
+          setUser(data);
+        } else {
+          // Logged-in user
+          setUser(authUser);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    loadUser();
+  }, [userId, authUser, isOwnProfile]);
 
   useEffect(() => {
-    if (user) { setForm({ username: user.username||"", bio: user.bio||"" }); setImgPreview(user.imageUrl||null); }
+    if (user) {
+      setForm({ username: user.username||"", bio: user.bio||"" });
+      setImgPreview(user.imageUrl||null);
+    }
   }, [user]);
 
   useEffect(() => {
-    getMyRepos().then(setRepos).catch(console.error).finally(() => setReposLoading(false));
-  }, []);
+    if (!user) return;
 
-  const showToast = (msg, type="success") => { setToast({msg,type}); setTimeout(()=>setToast(null),3200); };
+    setReposLoading(true);
+
+    if (!isOwnProfile) {
+      getUserRepos(user.username)
+        .then(setRepos)
+        .catch(console.error)
+        .finally(() => setReposLoading(false));
+    } else {
+      getMyRepos()
+        .then(setRepos)
+        .catch(console.error)
+        .finally(() => setReposLoading(false));
+    }
+  }, [user, isOwnProfile]); 
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    setFollowersLoading(true);
+    getFollowers(user.id)
+      .then(setFollowersList)
+      .catch(console.error)
+      .finally(() => setFollowersLoading(false));
+
+    setFollowingLoading(true);
+    getFollowing(user.id)
+      .then(setFollowingList)
+      .catch(console.error)
+      .finally(() => setFollowingLoading(false));
+  }, [user?.id]);
+
+  const showToast = (msg, type="success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3200);
+  };
 
   const handleSave = async () => {
     setSaving(true);
-    try { await updateProfile(form); await refreshUser(); setEditing(false); showToast("Profile updated!"); }
-    catch { showToast("Update failed","error"); }
-    finally { setSaving(false); }
+    try {
+      await updateProfile(form);
+      await refreshUser();
+      setEditing(false);
+      showToast("Profile updated!");
+    } catch {
+      showToast("Update failed", "error");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleImg = async (e) => {
-    const file = e.target.files[0]; if (!file) return;
-    new FileReader().onload = ev => setImgPreview(ev.target.result);
-    const r = new FileReader(); r.onload = ev => setImgPreview(ev.target.result); r.readAsDataURL(file);
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (ev) => setImgPreview(ev.target.result);
+    reader.readAsDataURL(file);
+
     setImgUploading(true);
-    try { await uploadProfileImage(file); await refreshUser(); showToast("Avatar updated!"); }
-    catch { showToast("Image upload failed","error"); }
-    finally { setImgUploading(false); }
+    try {
+      await uploadProfileImage(file);
+      await refreshUser();
+      showToast("Avatar updated!");
+    } catch {
+      showToast("Image upload failed", "error");
+    } finally {
+      setImgUploading(false);
+    }
   };
 
   const visible = useMemo(() => {
     let list = repos.filter(r => {
-      const q = r.name?.toLowerCase().includes(filter.toLowerCase());
-      const t2 = tab==="all" || (tab==="public"&&!r.isPrivate) || (tab==="private"&&r.isPrivate);
-      return q && t2;
+      const matchesFilter = r.name?.toLowerCase().includes(filter.toLowerCase());
+      const matchesTab = tab==="all" || (tab==="public" && !r.isPrivate) || (tab==="private" && r.isPrivate);
+      return matchesFilter && matchesTab;
     });
-    if (sortBy==="name")    list = [...list].sort((a,b)=>a.name.localeCompare(b.name));
-    if (sortBy==="commits") list = [...list].sort((a,b)=>(b.commits?.length??0)-(a.commits?.length??0));
-    if (sortBy==="updated") list = [...list].sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt));
+    if (sortBy==="name")    list = [...list].sort((a,b) => a.name.localeCompare(b.name));
+    if (sortBy==="commits") list = [...list].sort((a,b) => (b.commits?.length??0)-(a.commits?.length??0));
+    if (sortBy==="updated") list = [...list].sort((a,b) => new Date(b.createdAt)-new Date(a.createdAt));
     return list;
   }, [repos, filter, tab, sortBy]);
 
-  const tabCount = t => t==="all"?repos.length:repos.filter(r=>t==="public"?!r.isPrivate:r.isPrivate).length;
-  const totalCommits = repos.reduce((s,r)=>s+(r.commits?.length??0),0);
-  const totalFiles   = repos.reduce((s,r)=>s+(r.files?.length??0),0);
-  const memberSince  = repos.length > 0
-    ? fmtShort(repos.reduce((e,r)=>r.createdAt&&(!e||r.createdAt<e)?r.createdAt:e, null)) : null;
+  const tabCount    = t => t==="all" ? repos.length : repos.filter(r => t==="public" ? !r.isPrivate : r.isPrivate).length;
+  const totalCommits = repos.reduce((s,r) => s+(r.commits?.length??0), 0);
+  const totalFiles   = repos.reduce((s,r) => s+(r.files?.length??0), 0);
+
+  const memberSince = repos.length > 0
+    ? fmtShort(repos.reduce((e,r) => r.createdAt && (!e || r.createdAt < e) ? r.createdAt : e, null))
+    : null;
 
   return (
     <div className={`pp ${mounted?"pp--in":""}`}>
@@ -260,6 +427,17 @@ export default function ProfilePage() {
           }
           {toast.msg}
         </div>
+      )}
+
+      {/* FOLLOWERS / FOLLOWING MODAL */}
+      {modal && (
+        <UserListModal
+          title={modal === "followers" ? "Followers" : "Following"}
+          users={modal === "followers" ? followersList : followingList}
+          loading={modal === "followers" ? followersLoading : followingLoading}
+          onClose={() => setModal(null)}
+          navigate={navigate}
+        />
       )}
 
       {/* BANNER */}
@@ -282,22 +460,43 @@ export default function ProfilePage() {
 
         {/* ── SIDEBAR ── */}
         <aside className="pp-sidebar">
-          {/* Avatar */}
-          <div className="pp-avatar-wrap" onClick={()=>fileRef.current?.click()}>
+          
+          {/* Avatar - SECURED: Only clickable if isOwnProfile */}
+          <div 
+            className="pp-avatar-wrap" 
+            onClick={isOwnProfile ? () => fileRef.current?.click() : undefined}
+            style={{ cursor: isOwnProfile ? "pointer" : "default" }}
+          >
             <div className={`pp-avatar ${imgUploading?"pp-avatar--pulse":""}`}>
-              {imgPreview ? <img src={imgPreview} alt="avatar" /> : <span>{user?.username?.charAt(0).toUpperCase()}</span>}
+              {imgPreview
+                ? <img src={imgPreview} alt="avatar" />
+                : <span>{user?.username?.charAt(0).toUpperCase()}</span>
+              }
               <div className="pp-avatar-ring" />
             </div>
-            <div className="pp-avatar-overlay">
-              {imgUploading ? <span className="pp-spinner" />
-                : <svg viewBox="0 0 24 24" fill="none"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="currentColor" strokeWidth="1.8"/><circle cx="12" cy="13" r="3" stroke="currentColor" strokeWidth="1.8"/></svg>}
-              <span>{imgUploading?"Uploading…":"Change photo"}</span>
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleImg}/>
+
+            {/* SECURED: Only show 'Change photo' overlay if own profile */}
+            {isOwnProfile && (
+              <div className="pp-avatar-overlay">
+                {imgUploading
+                  ? <span className="pp-spinner" />
+                  : <svg viewBox="0 0 24 24" fill="none">
+                      <path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" stroke="currentColor" strokeWidth="1.8"/>
+                      <circle cx="12" cy="13" r="3" stroke="currentColor" strokeWidth="1.8"/>
+                    </svg>
+                }
+                <span>{imgUploading?"Uploading…":"Change photo"}</span>
+              </div>
+            )}
+
+            {/* SECURED: Only mount the file input if own profile */}
+            {isOwnProfile && (
+              <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={handleImg}/>
+            )}
           </div>
 
           {/* Identity */}
-          {editing ? (
+          {editing && isOwnProfile ? (
             <div className="pp-edit-form">
               <label className="pp-label">Username</label>
               <input className="pp-input" value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/>
@@ -313,11 +512,14 @@ export default function ProfilePage() {
           ) : (
             <div className="pp-identity">
               <h1 className="pp-username">{user?.username}</h1>
-              <p className={`pp-bio ${!user?.bio?"pp-bio--empty":""}`}>{user?.bio||"No bio yet — click Edit to add one"}</p>
-              <button className="pp-btn-edit" onClick={()=>setEditing(true)}>
-                <svg viewBox="0 0 16 16" fill="currentColor" width="12"><path d="M11.013 1.427a1.75 1.75 0 012.474 0l1.086 1.086a1.75 1.75 0 010 2.474l-8.61 8.61c-.21.21-.47.364-.756.445l-3.251.93a.75.75 0 01-.927-.928l.929-3.25c.081-.286.235-.547.445-.758l8.61-8.61z"/></svg>
-                Edit profile
-              </button>
+              <p className={`pp-bio ${!user?.bio?"pp-bio--empty":""}`}>{user?.bio||"No bio yet"}</p>
+              
+              {/* SECURED: Only show Edit Button if own profile */}
+              {isOwnProfile && (
+                <button className="pp-btn-edit" onClick={()=>setEditing(true)}>
+                  Edit profile
+                </button>
+              )}
             </div>
           )}
 
@@ -325,16 +527,34 @@ export default function ProfilePage() {
 
           {/* Stats grid */}
           <div className="pp-stats-grid">
-            <StatPill value={user?.followers} label="Followers" color="#2f81f7" delay={80}
+            <StatPill
+              value={followersList.length}
+              label="Followers"
+              color="#2f81f7"
+              delay={80}
+              onClick={() => setModal("followers")}
               icon={<svg viewBox="0 0 16 16" fill="currentColor" width="14"><path d="M2 5.5a3.5 3.5 0 115.898 2.549 5.508 5.508 0 013.034 4.084.75.75 0 11-1.482.235 4.001 4.001 0 00-7.9 0 .75.75 0 01-1.482-.236A5.507 5.507 0 013.102 8.05 3.493 3.493 0 012 5.5z"/></svg>}
             />
-            <StatPill value={user?.following} label="Following" color="#bc8cff" delay={160}
+            <StatPill
+              value={followingList.length}
+              label="Following"
+              color="#bc8cff"
+              delay={160}
+              onClick={() => setModal("following")}
               icon={<svg viewBox="0 0 16 16" fill="currentColor" width="14"><path d="M2 5.5a3.5 3.5 0 115.898 2.549 5.508 5.508 0 013.034 4.084.75.75 0 11-1.482.235 4.001 4.001 0 00-7.9 0 .75.75 0 01-1.482-.236A5.507 5.507 0 013.102 8.05 3.493 3.493 0 012 5.5zM11 4a.75.75 0 100 1.5 1.5 1.5 0 01.666 2.844.75.75 0 00-.416.672v.352a.75.75 0 00.574.73c1.2.289 2.162 1.2 2.522 2.372a.75.75 0 101.434-.44 5.01 5.01 0 00-2.56-3.012A3 3 0 0011 4z"/></svg>}
             />
-            <StatPill value={totalCommits} label="Commits" color="#3fb950" delay={240}
+            <StatPill
+              value={totalCommits}
+              label="Commits"
+              color="#3fb950"
+              delay={240}
               icon={<svg viewBox="0 0 16 16" fill="currentColor" width="14"><path d="M11.93 8.5a4.002 4.002 0 01-7.86 0H.75a.75.75 0 010-1.5h3.32a4.002 4.002 0 017.86 0h3.32a.75.75 0 010 1.5h-3.32zM8 6a2 2 0 100 4 2 2 0 000-4z"/></svg>}
             />
-            <StatPill value={totalFiles} label="Files" color="#e3b341" delay={320}
+            <StatPill
+              value={totalFiles}
+              label="Files"
+              color="#e3b341"
+              delay={320}
               icon={<svg viewBox="0 0 16 16" fill="currentColor" width="14"><path d="M2 1.75C2 .784 2.784 0 3.75 0h6.586c.464 0 .909.184 1.237.513l2.914 2.914c.329.328.513.773.513 1.237v9.586A1.75 1.75 0 0113.25 16h-9.5A1.75 1.75 0 012 14.25V1.75z"/></svg>}
             />
           </div>
@@ -362,10 +582,12 @@ export default function ProfilePage() {
           <div className="pp-divider"/>
           <LanguageBar repos={repos}/>
 
-          <button className="pp-new-repo-btn" onClick={()=>navigate("/new")}>
-            <svg viewBox="0 0 16 16" fill="currentColor" width="13"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
-            New repository
-          </button>
+          {isOwnProfile && (
+            <button className="pp-new-repo-btn" onClick={()=>navigate("/new")}>
+              <svg viewBox="0 0 16 16" fill="currentColor" width="13"><path d="M8 2a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5h-4.5a.75.75 0 010-1.5h4.5v-4.5A.75.75 0 018 2z"/></svg>
+              New repository
+            </button>
+          )}
         </aside>
 
         {/* ── MAIN ── */}
@@ -398,16 +620,21 @@ export default function ProfilePage() {
             {reposLoading ? (
               [1,2,3].map(i=>(
                 <div key={i} className="pp-skeleton" style={{animationDelay:`${i*100}ms`}}>
-                  <div className="pp-skel-line pp-skel-50"/><div className="pp-skel-line pp-skel-80"/><div className="pp-skel-line pp-skel-35"/>
+                  <div className="pp-skel-line pp-skel-50"/>
+                  <div className="pp-skel-line pp-skel-80"/>
+                  <div className="pp-skel-line pp-skel-35"/>
                 </div>
               ))
             ) : visible.length===0 ? (
               <div className="pp-empty">
                 <div className="pp-empty-icon">
-                  <svg viewBox="0 0 24 24" fill="none"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" stroke="currentColor" strokeWidth="1.5" opacity=".3"/><path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity=".4"/></svg>
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2z" stroke="currentColor" strokeWidth="1.5" opacity=".3"/>
+                    <path d="M9 9l6 6M15 9l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" opacity=".4"/>
+                  </svg>
                 </div>
                 <p>{filter?"No repositories match":"No repositories yet"}</p>
-                {!filter && <button className="pp-empty-cta" onClick={()=>navigate("/new")}>Create your first repository →</button>}
+                {!filter && isOwnProfile && <button className="pp-empty-cta" onClick={()=>navigate("/new")}>Create your first repository →</button>}
               </div>
             ) : (
               <div className="pp-repo-grid">
