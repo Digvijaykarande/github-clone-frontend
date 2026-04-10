@@ -530,11 +530,12 @@
 }
 @media (max-width: 700px) {
   .nb-logo-pill { display: none; }
-  .nb-search-input { width: 150px; }
+  .nb-search-input { width: 170px; }
   .nb-search-input:focus { width: 190px; }
   .nb-new-btn span { display: none; }
 }
 @media (max-width: 520px) {
-  .nb-vsep, .nb-search { display: none; }
+  .nb-vsep { display: none; }
   .nb-logo-text { display: none; }
+  .nb-icon-btn{display: none;}
 }
